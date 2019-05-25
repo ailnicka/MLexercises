@@ -3,6 +3,8 @@ function y = lwlr(X_train, y_train, x, tau)
 %% Locally weighted logistic regression
 % the vaule of parameter lambda given in exerscise
 lam = 0.0001;
+%% m the sample size
+m = length(y_train);
 %% Update of Theta in Newton's method Th := Th + l'(Th)/l''(Th)
 %% Initialise Th as a zero vector:
 Th = [0;0];

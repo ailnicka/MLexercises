@@ -1,1 +1,0 @@
-function h = h_Th(x_i, Th)%logistic function for x with parameter Th #h = Th'*x_i';h = 1.0 / (1.0 + exp(-Th'*x_i') );

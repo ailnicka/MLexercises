@@ -1,0 +1,144 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{epsf,amssymb,amsmath,epsfig,graphicx,dcolumn}
+\usepackage{scalefnt,ulem,pstricks}
+\usepackage{rotating}
+\usepackage{epstopdf}
+\usepackage{color}
+\usepackage{subfigure}
+\usepackage{tikz-feynman}
+\setlength{\topmargin}{-1.5 cm} 
+\setlength{\evensidemargin}{.0 cm} 
+\setlength{\oddsidemargin}{-.5 cm} 
+\setlength{\textheight}{24cm} 
+\setlength{\textwidth}{17.5cm} 
+\parskip = 2ex 
+
+\renewcommand{\thefigure}{\arabic{figure}} 
+
+\newcommand\f[2]{\frac{#1}{#2}}
+\newcommand{\hTh}{h_{\Theta}}
+\newcommand{\Th}{\Theta}
+\newcommand{\xii}{x^{(i)}}
+\newcommand{\yi}{y^{(i)}}
+\newcommand{\half}{\f{1}{2}}
+\newcommand{\tr}{\mathbf{tr}}
+\newcommand{\f1[1]}{\frac{1}{#1}}
+\begin{document}
+
+\section{ Newton’s method for computing least squares }
+
+\noindent (a) Hessian ($H$) is a matrix of second derivatives. We can start from the expression for a derivative of cost function $J(\Theta)$ as was presented in the lecture notes:
+$$ \f{\partial}{\partial \Theta_j} J(\Theta) = (\hTh(x) - y) x_j  \rightarrow \nabla_{\Th} J(\Th) =  X^TX\Theta - X^T\vec{y}$$
+where $\hTh(x) = \sum^{n}_{i=0} \Theta_i x_i$, and differentiate it second time wrt $\Theta_k$:
+$$ \f{\partial^2}{\partial \Theta_j \partial \Theta_k} J(\Theta) =  x_j x_k $$
+This can be also expressed in a matrix form: $H = X^TX$. \\ \\
+
+\noindent (b) The step in the Newton's method is defined: 
+$$\Th := \Th - \f{f(\Th)}{f'(\Th)}$$
+when one looks for roots of $f(\Th)$. Since we want to minimize $J(\Th)$, we want $\nabla_{\Th} J(\Th) = 0$, and thus we use the modified version expressed on matrices and vectors:
+$$\Th := \Th - H^{-1} \nabla_{\Th} J(\Th)$$. 
+Let us now look how looks $\Theta$ after first step ($\Theta_1$) taking some $\Theta_0$ as a starting point, and implementing the expressions found in the previous exercise:
+$$\Theta_1 = \Theta_0 - (X^TX)^{-1}( X^TX\Theta_0 - X^T\vec{y}) =\Theta_0 - \Theta_0 +  (X^TX)^{-1} X^T\vec{y} = (X^TX)^{-1} X^T\vec{y} $$
+As we can see our expression do not depend on the choice of $\Th_0$, and we arrive to the solution in one step.
+
+\section{ Locally-weighted logistic regression }
+
+\noindent (a) The program written for this exercise is available in q2/ directory, here we present the function lwlr.m:
+
+\begin{verbatim}
+function y = lwlr(X_train, y_train, x, tau)
+
+%% Locally weighted logistic regression
+% the vaule of parameter lambda given in exerscise
+lam = 0.0001;
+%% m the sample size
+m = length(y_train);
+%% Update of Theta in Newton's method Th := Th + l'(Th)/l''(Th)
+%% Initialise Th as a zero vector:
+Th = [0;0];
+Grad = [1;1];
+
+%% to avoid too many iterations
+iter = 0;
+%% building vector of weights for the training set
+weights = exp(-sum((X_train - repmat(x', m, 1)).^2, 2) / (2 * tau^2));
+
+while (norm(Grad) > 0.0001 && iter < 10000) 
+  iter = iter+1;
+%% vector of h_Theta from X
+  h = 1.0 ./ (1.0 + exp(-sum(X_train .* Th',2)));
+  
+%%  auxiliary variables z and D for gradient and hessian calculation
+  z = weights .* (y_train - h);
+  D = diag(- weights .* (1.0 - h) .* h);
+
+  %% Hessian expression H = XT DX − λI
+  Hess = X_train' * D * X_train - lam * eye(2);
+  %% Grad expression ∇θl(θ) = XT z − λθ
+  Grad = X_train' * z - lam * Th;
+  %% Update of Theta in Newton's method Th := Th + l'(Th)/l''(Th) 
+  Th = Th - Hess \ Grad;
+endwhile
+%% make prediction for y
+if (1.0 / (1.0 + exp(-x' * Th)) > 0.5)
+  y = 1;
+else
+  y = 0;
+endif
+\end{verbatim}
+\noindent (b) There will be pics at some point...
+
+\section{ Multivariate least squares }
+
+\noindent (a) We have a cost function:
+$$J(\Th) = \f{1}{2} \sum^m_{i=1} \sum^p_{j=1} ((\Th^T \xii)_j - \yi_j)$$.
+To express this in a vector/matrix form let us consider building blocks: the design matrix $X \in \mathbb{R}^{m\times n}$, the target matrix $Y \in \mathbb{R}^{m\times p}$ and the parameters matrix $\Th \in \mathbb{R}^{n\times p}$.
+The cost function expressed with these matrices:
+$$J(\Th) = \f{1}{2} \tr (X\Th - Y)^T (X\Th - Y) $$
+where matrices have right dimensions that the operations are well defined and the trace is applied to take the sum of diagonal elements ($\sum_j$ in first expression).\\ \\ 
+
+\noindent (b) The minimization of $J(\Th)$ requires $\nabla_{\Th} J(\Th) = 0$:
+$$\nabla_{\Th} J(\Th) = \f{1}{2} \nabla_{\Th} \tr (X\Th - Y)^T(X\Th - Y) = \half  \nabla_{\Th} \tr (\Th^T X^T X \Th - Y^T X\Th - \Th^T X^T Y + Y^T Y) = $$
+now we use properties of trace (eg. cyclic or $\tr A = \tr A^T$) and of the matrix derivatives as shown in the Sec. 2.1. of lecture notes:
+$$= \half  \nabla_{\Th} \tr \Th^T X^T X \Th -  \nabla_{\Th} \tr Y^T X\Th  = X^TX\Th - X^TY$$
+We identify it with zero and solve for $\Th$:
+$$X^TX\Th - X^TY = 0$$
+$$X^TX\Th = X^TY$$
+$$\Th = (X^TX)^{-1} X^TY $$
+
+\noindent (c) When there is just one value of y, we get the expression (from the lecture notes):
+$$\theta = (X^T X) X^T \vec{y}$$.
+When we consider the $p$ independent target vectors $\vec{y_j}$ where $j=1,...,p$ we can combine them in a matrix $Y = (\vec{y_1} ... \vec{y_p})$ and also the paramters $\theta \rightarrow \theta_j $ will arrive into the final parameter matrix  $\Th = [\theta_1 ... \theta_p ]$.
+\section{Naive Bayes}
+
+\noindent (a) 
+
+\section{Exponential family and the geometric distribution}
+
+\noindent (a) Geometric distribution given by:
+$$p(y;\phi) = (1- \phi)^{(y-1)} \phi \ \ \  \text{for } \ y= 1,2,3,... $$
+and the Exponential Family form:
+$$p(y;\eta) = b(y) \exp(\eta^T T(y) - a(\eta))$$
+where $T(y)$ is a sufficient statistic, usually $T(y)=y$, and $\eta$ is natural parameter. Let us play with the form of the geometric distribution to allow the identification of the Exponential Family form:
+$$p(y;\phi) = \exp(\log((1-\phi)^{(y-1)} \phi) = \exp((y-1)\log(1-\phi) + \log(\phi)) = \exp(y \log(1-\phi) - \log(\f{\phi}{1-\phi}))$$
+We can now identify:
+$$T(y) = y$$
+$$b(y) = 1$$
+$$\eta^T = \log(1-\phi)$$
+from this we can get: $\phi = 1-\exp(\eta)$,
+$$a(\eta) = - \log(\f{\phi}{1-\phi}) = - log(\f{1-\exp(\eta)}{1-1+\exp(\eta)}) = \log(\f{1}{1+\exp(-\eta)})$$
+
+\noindent (b) knowing $E[y;\phi] = \f{1}{\phi}$, we have:
+$$g(\eta) = E[T(y); \eta] = E[y; \eta(\phi)] = \f{1}{phi} = \f{1}{1-\exp(\eta)}$$
+
+\noindent (c) having $p(y;\phi) = (1- \phi)^{(y-1)} \phi$ and $\phi = 1-\exp(\Th^T x)$ we get the log-likelihood of a form:
+
+$$l(\Th) = \log(p(\yi|\xii;\Th) = \log(1- \phi)^{(y-1)} \phi) = \log((\exp(\Th^T \xii)^{\yi -1} (1-\exp(\Th^T x)) = (\yi -1)\Th^T \xii + \log(1-\exp(\Th^T x)) $$
+$$= \yi \Th^T \xii + \log(\f{1-\exp(\Th^T \xii) }{(\exp(\Th^T \xii)} =  \yi \Th^T \xii + \log(\exp(-\Th^T \xii)-1) $$
+To derive rule for a stochastic gradient ascent, we need to compute the gradient: 
+$$\f{d}{d\Th_j}l(\Th) = \yi \xii_j + \f{\exp(-\Th^T\xii) (-\xii_j)}{\exp(-\Th^T \xii)-1} = (\yi - \f1{1-\exp(\Th^T\xii)} ) \xii_j$$
+and then the rule is:
+$$\Th_j := \Th_j + \alpha \f{\partial l(\Th)}{\partial \Th_j}$$
+$$\Th_j := \Th_j  + \alpha  (\yi - \f1{1-\exp(\Th^T\xii)} ) \xii_j $$
+\end{document} 

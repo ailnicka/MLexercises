@@ -14,11 +14,11 @@ figure(1);
 clf;
 axis off;
 hold on;
-imagesc(pred, [-0.4 1.3]);
+colormap('summer')
+imagesc(pred, [-0.1 1.1]);
 plot((res/2)*(1+X(y==0,1))+0.5, (res/2)*(1+X(y==0,2))+0.5, 'ko');
 plot((res/2)*(1+X(y==1,1))+0.5, (res/2)*(1+X(y==1,2))+0.5, 'kx');
 axis equal;
 axis square;
-text(res/2 - res/7, res + res/20, ['tau = ' num2str(tau)], 'FontSize', 18);
-
-
+text(res * 0.45, res * 1.1 , ['tau = ' num2str(tau)], 'FontSize', 18);
+print 'tau' num2str(tau) '.jpg'
